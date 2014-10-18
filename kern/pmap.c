@@ -100,10 +100,17 @@ boot_alloc(uint32_t n)
 	// Allocate a chunk large enough to hold 'n' bytes, then update
 	// nextfree.  Make sure nextfree is kept aligned
 	// to a multiple of PGSIZE.
-	//
-	// LAB 2: Your code here.
 
-	return NULL;
+	result = nextfree;
+	if (n > 0) {
+		nextfree += n;
+		if (nextfree >= (char *) (KERNBASE + PTSIZE))
+			panic("boot_alloc: Out of Memory!");
+		else
+			nextfree = ROUNDUP(nextfree, PGSIZE);
+	}
+
+	return result;
 }
 
 // Set up a two-level page table:
@@ -124,9 +131,6 @@ mem_init(void)
 	// Find out how much memory the machine has (npages & npages_basemem).
 	i386_detect_memory();
 
-	// Remove this line when you're ready to test this function.
-	panic("mem_init: This function is not finished\n");
-
 	//////////////////////////////////////////////////////////////////////
 	// create initial page directory.
 	kern_pgdir = (pde_t *) boot_alloc(PGSIZE);
@@ -146,7 +150,7 @@ mem_init(void)
 	// The kernel uses this array to keep track of physical pages: for
 	// each physical page, there is a corresponding struct Page in this
 	// array.  'npages' is the number of physical pages in memory.
-	// Your code goes here:
+	pages = (struct Page *) boot_alloc(npages * sizeof(struct Page));
 
 	//////////////////////////////////////////////////////////////////////
 	// Now that we've allocated the initial kernel data structures, we set
@@ -158,8 +162,10 @@ mem_init(void)
 
 	check_page_free_list(1);
 	check_page_alloc();
-	check_page();
+	//check_page();
 	check_n_pages();
+	// Remove this line when you're ready to test this function.
+	panic("mem_init: This function is not finished\n");
 
 	//////////////////////////////////////////////////////////////////////
 	// Now we set up virtual memory
@@ -251,7 +257,18 @@ page_init(void)
 	// NB: DO NOT actually touch the physical memory corresponding to
 	// free pages!
 	size_t i;
-	for (i = 0; i < npages; i++) {
+	pages[0].pp_ref = 1;
+	pages[0].pp_link = NULL;
+	for (i = 1; i < npages_basemem; i++) {
+		pages[i].pp_ref = 0;
+		pages[i].pp_link = page_free_list;
+		page_free_list = &pages[i];
+	}
+	for (i = npages_basemem; i < ((EXTPHYSMEM / PGSIZE) + NPTENTRIES); i++) {
+		pages[i].pp_ref = 1;
+		pages[i].pp_link = NULL;
+	}
+	for (i = ((EXTPHYSMEM / PGSIZE) + NPTENTRIES); i < npages; i++) {
 		pages[i].pp_ref = 0;
 		pages[i].pp_link = page_free_list;
 		page_free_list = &pages[i];
@@ -270,8 +287,15 @@ page_init(void)
 struct Page *
 page_alloc(int alloc_flags)
 {
-	// Fill this function in
-	return 0;
+	struct Page *pp;
+
+	if (page_free_list == NULL)
+		return NULL;
+	pp = page_free_list;
+	page_free_list = pp->pp_link;
+	if (alloc_flags & ALLOC_ZERO)
+		memset(page2kva(pp), '\0', PGSIZE);
+	return pp;
 }
 
 //
@@ -290,8 +314,8 @@ page_alloc(int alloc_flags)
 struct Page *
 page_alloc_npages(int alloc_flags, int n)
 {
-	// Fill this function
-	return NULL;
+	if (n <= 0)
+		return NULL;
 }
 
 // Return n continuous pages to chunck list. Do the following things:
@@ -302,8 +326,8 @@ page_alloc_npages(int alloc_flags, int n)
 int
 page_free_npages(struct Page *pp, int n)
 {
-	// Fill this function
-	return -1;
+	if (!check_continuous(pp, n))
+		return -1;
 }
 
 //
@@ -313,7 +337,8 @@ page_free_npages(struct Page *pp, int n)
 void
 page_free(struct Page *pp)
 {
-	// Fill this function in
+	pp->pp_link = page_free_list;
+	page_free_list = pp;
 }
 
 //
@@ -325,7 +350,7 @@ struct Page *
 page_realloc_npages(struct Page *pp, int old_n, int new_n)
 {
 	// Fill this function
-	return -1;
+	return NULL;
 }
 
 //
