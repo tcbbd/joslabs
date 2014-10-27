@@ -409,7 +409,7 @@ page_realloc_npages(struct Page *pp, int old_n, int new_n)
 	if (old_n == new_n)
 		return pp;
 	if (old_n > new_n) {
-		page_free_npages(pp + new_n - 1, old_n - new_n);
+		page_free_npages(pp + new_n, old_n - new_n);
 		return pp;
 	}
 	else {
@@ -419,7 +419,9 @@ page_realloc_npages(struct Page *pp, int old_n, int new_n)
 				break;
 		}
 		if (i == new_n - old_n) {
-			page_alloc_npages(ALLOC_ZERO, new_n - old_n);
+			tmp--;
+			for (i = 0; i < new_n - old_n; i++, tmp++)
+				tmp->pp_link = tmp + 1;
 			return pp;
 		}
 		else {
