@@ -25,6 +25,8 @@ struct Command {
 static struct Command commands[] = {
 	{ "help", "Display this list of commands", mon_help },
 	{ "kerninfo", "Display information about the kernel", mon_kerninfo },
+	{ "backtrace", "Display stack backtrace", mon_backtrace },
+	{ "time", "Test the running time of a command, Usage: time [command]" , mon_time },
 };
 #define NCOMMANDS (sizeof(commands)/sizeof(commands[0]))
 
@@ -58,10 +60,97 @@ mon_kerninfo(int argc, char **argv, struct Trapframe *tf)
 }
 
 int
+mon_time(int argc, char **argv, struct Trapframe *tf)
+{
+	uint64_t tsc_start, tsc_end;
+	int i;
+
+	// Lookup and invoke the command
+	if (argc == 1) {
+		cprintf("Usage: time [command]\n");
+		return 0;
+	}
+	for (i = 0; i < NCOMMANDS; i++) {
+		if (strcmp(argv[1], commands[i].name) == 0) {
+			tsc_start = read_tsc();
+			commands[i].func(argc - 1, argv + 1, tf);
+			tsc_end = read_tsc();
+			cprintf("%s cycles: %llu\n", argv[1], tsc_end - tsc_start);
+			return 0;
+		}
+	}
+	cprintf("Unknown command '%s'\n", argv[1]);
+	return 0;
+}
+
+// Lab1 only
+// read the pointer to the retaddr on the stack
+static uint32_t
+read_pretaddr() {
+    uint32_t pretaddr;
+    __asm __volatile("leal 4(%%ebp), %0" : "=r" (pretaddr)); 
+    return pretaddr;
+}
+
+void
+do_overflow(void)
+{
+    cprintf("Overflow success\n");
+}
+
+void
+start_overflow(void)
+{
+	// You should use a techique similar to buffer overflow
+	// to invoke the do_overflow function and
+	// the procedure must return normally.
+
+	char str[256] = {};
+	int i;
+	char *pret_addr;
+	uint32_t overflow_addr = (uint32_t) do_overflow;
+
+	pret_addr = (char *) read_pretaddr();
+	for (i = 0; i < 4; i++) {
+		memset(str, 0, 256);
+		memset(str, 0xd, (unsigned char)(*(pret_addr + i)));
+		cprintf("%s%n", str, pret_addr + 4 + i);
+	}
+	for (i = 0; i < 4; i++) {
+		memset(str, 0, 256);
+		memset(str, 0xd, (overflow_addr >> (8*i)) & 0xFF);
+		cprintf("%s%n", str, pret_addr + i);
+	}
+
+}
+
+void
+overflow_me(void)
+{
+    start_overflow();
+}
+
+int
 mon_backtrace(int argc, char **argv, struct Trapframe *tf)
 {
-	// Your code here.
-	return 0;
+    uint32_t *ebp;
+    struct Eipdebuginfo info;
+
+    //overflow_me();
+    cprintf("Stack backtrace:\n");
+    ebp = (uint32_t *) read_ebp();
+    while (ebp != NULL) {
+        cprintf("  eip %08x  ebp %08x  args %08x %08x %08x %08x %08x\n",
+                *(ebp+1), (uint32_t)ebp, *(ebp+2), *(ebp+3), *(ebp+4),
+                *(ebp+5), *(ebp+6));
+        debuginfo_eip((uintptr_t)(*(ebp+1)), &info);
+        cprintf("        %s:%u %.*s+%u\n",info.eip_file, info.eip_line,
+                info.eip_fn_namelen, info.eip_fn_name,
+                (*(ebp+1)) - (uint32_t)info.eip_fn_addr);
+        ebp = (uint32_t *) (*ebp);
+    }
+    cprintf("Backtrace success\n");
+    return 0;
 }
 
 
