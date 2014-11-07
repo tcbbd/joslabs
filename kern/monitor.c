@@ -27,6 +27,9 @@ static struct Command commands[] = {
 	{ "kerninfo", "Display information about the kernel", mon_kerninfo },
 	{ "backtrace", "Display stack backtrace", mon_backtrace },
 	{ "time", "Test the running time of a command, Usage: time [command]" , mon_time },
+	{ "c", "Continue program being debugged, Usage: c" , mon_continue },
+	{ "si", "Step one instruction exactly, Usage: si" , mon_stepi },
+	{ "x", "Examine memory, Usage: x ADDRESS" , mon_examine },
 };
 #define NCOMMANDS (sizeof(commands)/sizeof(commands[0]))
 
@@ -80,6 +83,119 @@ mon_time(int argc, char **argv, struct Trapframe *tf)
 		}
 	}
 	cprintf("Unknown command '%s'\n", argv[1]);
+	return 0;
+}
+
+int
+mon_continue(int argc, char **argv, struct Trapframe *tf)
+{
+	// return error code so that we can leave the loop in monitor
+	if (tf != NULL)
+		return -1;
+	cprintf("Not in debug mode\n");
+	return 0;
+}
+
+int
+mon_stepi(int argc, char **argv, struct Trapframe *tf)
+{
+	if (tf != NULL) {
+		tf->tf_eflags |= FL_TF;
+		return -1;
+	}
+	cprintf("Not in debug mode\n");
+	return 0;
+}
+
+static int runcmd(char *buf, struct Trapframe *tf);
+
+void
+monitor_stepi(struct Trapframe *tf)
+{
+	struct Eipdebuginfo info;
+	char *buf;
+
+	if (tf == NULL)
+		panic("monitor_stepi: NULL Trapframe in stepi debugging");
+	tf->tf_eflags &= ~FL_TF;
+	if (debuginfo_eip(tf->tf_eip, &info) < 0)
+		panic("monitor_stepi: error fetching debug info");
+	cprintf("%08p\n", tf->tf_eip);
+	cprintf("%s:%u %.*s+%u\n", info.eip_file, info.eip_line,
+			info.eip_fn_namelen, info.eip_fn_name, tf->tf_eip - info.eip_fn_addr);
+
+	while (1) {
+		buf = readline("K> ");
+		if (buf != NULL)
+			if (runcmd(buf, tf) < 0)
+				break;
+	}
+}
+
+//NOTE: this would probably overflow
+static uintptr_t
+parse_addr(char *str, int *error)
+{
+	char *pos = str;
+	int base = 10;
+	uintptr_t ret = 0;
+
+	*error = 0;
+	if (*pos == '0') {
+		if (*(pos + 1) == 'x') {
+			pos += 2;
+			if (*pos == 0) { //input is "0x"
+				*error = -1;
+				return ret;
+			}
+			base = 16;
+		}
+		else {
+			pos++;
+			if (*pos == 0) //input is "0"
+				return ret;
+			base = 8;
+		}
+	}
+	while (*pos) {
+		if ('0' <= *pos && *pos <= '7')
+			ret = ret * base + (*pos - '0');
+		else if ((*pos == '8' || *pos == '9') && base != 8)
+			ret = ret * base + (*pos - '0');
+		else if (('a' <= *pos && *pos <= 'f') && base == 16)
+			ret = ret * base + (*pos - 'a') + 10;
+		else if (('A' <= *pos && *pos <= 'F') && base == 16)
+			ret = ret * base + (*pos - 'A') + 10;
+		else {
+			*error = -1;
+			return 0;
+		}
+		pos++;
+	}
+	return ret;
+}
+
+int
+mon_examine(int argc, char **argv, struct Trapframe *tf)
+{
+	uintptr_t addr;
+	int r;
+
+	if (tf == NULL) {
+		cprintf("Not in debug mode\n");
+		return 0;
+	}
+
+	if (argc == 2) {
+		addr = parse_addr(argv[1], &r);
+		if (r < 0) {
+			cprintf("Wrong syntax in ADDRESS\n");
+			return 0;
+		}
+		cprintf("%08p:\t%u\n", addr, *((uint32_t *)addr));
+	}
+	else
+		cprintf("Usage: x ADDRESS\n");
 	return 0;
 }
 

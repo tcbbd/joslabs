@@ -8,30 +8,33 @@ syscall(int num, int check, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
 {
 	int32_t ret;
 	asm volatile("pushl %%ecx\n\t"
-		 "pushl %%edx\n\t"
-	         "pushl %%ebx\n\t"
-		 "pushl %%esp\n\t"
-		 "pushl %%ebp\n\t"
-		 "pushl %%esi\n\t"
-		 "pushl %%edi\n\t"
-				 
-                 //Lab 3: Your code here
+			"pushl %%edx\n\t"
+			"pushl %%ebx\n\t"
+			"pushl %%esp\n\t"
+			"pushl %%ebp\n\t"
+			"pushl %%esi\n\t"
+			"pushl %%edi\n\t"
 
-                 "popl %%edi\n\t"
-                 "popl %%esi\n\t"
-                 "popl %%ebp\n\t"
-                 "popl %%esp\n\t"
-                 "popl %%ebx\n\t"
-                 "popl %%edx\n\t"
-                 "popl %%ecx\n\t"
-                 
-                 : "=a" (ret)
-                 : "a" (num),
-                   "d" (a1),
-                   "c" (a2),
-                   "b" (a3),
-                   "D" (a4)
-                 : "cc", "memory");
+			"pushl $1f\n\t"
+			"movl %%esp, %%ebp\n\t"
+			"sysenter\n\t"
+		"1:  addl $0x4, %%esp\n\t"
+
+			"popl %%edi\n\t"
+			"popl %%esi\n\t"
+			"popl %%ebp\n\t"
+			"popl %%esp\n\t"
+			"popl %%ebx\n\t"
+			"popl %%edx\n\t"
+			"popl %%ecx\n\t"
+			: "=a" (ret)
+			: "a" (num),
+			  "b" (a1),
+			  "c" (a2),
+			  "d" (a3),
+			  "S" (a4),
+			  "D" (a5)
+			: "cc", "memory");
 
 
 	if(check && ret > 0)
