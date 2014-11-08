@@ -370,7 +370,8 @@ load_icode(struct Env *e, uint8_t *binary, size_t size)
 		memmove((uint8_t *)ph->p_va, binary + ph->p_offset, ph->p_filesz);
 		memset((uint8_t *)ph->p_va + ph->p_filesz, 0, ph->p_memsz - ph->p_filesz);
 		// initialize current brk just following the last loaded segment
-		e->env_brk = ph->p_va + ph->p_memsz;
+        e->env_brk = e->env_brk > (ph->p_va + ph->p_memsz) ? e->env_brk :
+            (ph->p_va + ph->p_memsz);
 	}
 	e->env_tf.tf_eip = (uintptr_t) elfhdr->e_entry;
 

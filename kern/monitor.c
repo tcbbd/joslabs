@@ -11,6 +11,8 @@
 #include <kern/monitor.h>
 #include <kern/kdebug.h>
 #include <kern/trap.h>
+#include <kern/pmap.h>
+#include <kern/env.h>
 
 #define CMDBUF_SIZE	80	// enough for one VGA text line
 
@@ -190,6 +192,10 @@ mon_examine(int argc, char **argv, struct Trapframe *tf)
 		addr = parse_addr(argv[1], &r);
 		if (r < 0) {
 			cprintf("Wrong syntax in ADDRESS\n");
+			return 0;
+		}
+		if (user_mem_check(curenv, (char *) addr, 4, PTE_P) < 0) {
+			cprintf("Cannot read memory %08p\n", addr);
 			return 0;
 		}
 		cprintf("%08p:\t%u\n", addr, *((uint32_t *)addr));
