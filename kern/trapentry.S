@@ -48,18 +48,58 @@
  * Lab 3: Your code here for generating entry points for the different traps.
  */
 
-
+TRAPHANDLER_NOEC(_divide_zero, 0)
+TRAPHANDLER_NOEC(_debug, 1)
+/*TRAPHANDLER_NOEC(_NMI, 2) not a trap*/
+TRAPHANDLER_NOEC(_breakpoint, 3)
+TRAPHANDLER_NOEC(_overflow, 4)
+TRAPHANDLER_NOEC(_bound, 5)
+TRAPHANDLER_NOEC(_invalid_opcode, 6)
+TRAPHANDLER_NOEC(_device, 7)
+TRAPHANDLER(_double_fault, 8)
+/*TRAPHANDLER_NOEC(_coproc, 9)*/
+TRAPHANDLER(_invalid_tss, 10)
+TRAPHANDLER(_seg_not_present, 11)
+TRAPHANDLER(_stack_fault, 12)
+TRAPHANDLER(_general_protection, 13)
+TRAPHANDLER(_page_fault, 14)
+/*TRAPHANDLER_NOEC(_reserved, 15)*/
+TRAPHANDLER_NOEC(_x87FPU_error, 16)
+TRAPHANDLER(_align_check, 17)
+TRAPHANDLER_NOEC(_machine_check, 18)
+TRAPHANDLER_NOEC(_SIMD_FPerror, 19)
+TRAPHANDLER_NOEC(_virtualization, 20)
 
 .globl sysenter_handler;
 .type sysenter_handler, @function;
 .align 2;
 sysenter_handler:
-/*
- * Lab 3: Your code here for system call handling
- */
+	pushl %edi
+	pushl %esi
+	pushl %edx
+	pushl %ecx
+	pushl %ebx
+	pushl %eax
+	movw $GD_KD, %ax
+	movw %ax, %ds
+	movw %ax, %es
+	call syscall
+	movw $GD_UD, %dx
+	movw %dx, %ds
+	movw %dx, %es
+/*saved esp and eip*/
+	movl %ebp, %ecx
+	movl (%ebp), %edx
+	sysexit
+sysenter_spin:
+	jmp sysenter_spin
 
-
-/*
- * Lab 3: Your code here for _alltraps
- */
-
+_alltraps:
+	pushl %ds
+	pushl %es
+	pushal
+	movw $GD_KD, %ax
+	movw %ax, %ds
+	movw %ax, %es
+	pushl %esp
+	call trap

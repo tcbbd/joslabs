@@ -65,13 +65,63 @@ static const char *trapname(int trapno)
 	return "(unknown trap)";
 }
 
+void sysenter_handler();
+
+void _divide_zero();
+void _debug();
+//void _NMI();
+void _breakpoint();
+void _overflow();
+void _bound();
+void _invalid_opcode();
+void _device();
+void _double_fault();
+//void _coproc();
+void _invalid_tss();
+void _seg_not_present();
+void _stack_fault();
+void _general_protection();
+void _page_fault();
+//void _reserved();
+void _x87FPU_error();
+void _align_check();
+void _machine_check();
+void _SIMD_FPerror();
+void _virtualization();
 
 void
 trap_init(void)
 {
 	extern struct Segdesc gdt[];
 
-	// LAB 3: Your code here.
+	//init for sysenter
+	write_msr(IA32_SYSENTER_CS, GD_KT);
+	write_msr(IA32_SYSENTER_ESP, KSTACKTOP);
+	write_msr(IA32_SYSENTER_EIP, (uint32_t)(char *) sysenter_handler);
+
+	//Traps, but trap() suggests that IF should be cleared whether it is caused
+	//by interrupt or exception, so they are all set to Interrupt Gates.
+	SETGATE(idt[T_DIVIDE], 0, GD_KT, _divide_zero, 0);
+	SETGATE(idt[T_DEBUG], 0, GD_KT, _debug, 0);
+	//SETGATE(idt[T_NMI], 0, GD_KT, _NMI, 0); intr will be set in next lab
+	SETGATE(idt[T_BRKPT], 0, GD_KT, _breakpoint, 3);
+	SETGATE(idt[T_OFLOW], 0, GD_KT, _overflow, 3);
+	SETGATE(idt[T_BOUND], 0, GD_KT, _bound, 0);
+	SETGATE(idt[T_ILLOP], 0, GD_KT, _invalid_opcode, 0);
+	SETGATE(idt[T_DEVICE], 0, GD_KT, _device, 0);
+	SETGATE(idt[T_DBLFLT], 0, GD_KT, _double_fault, 0);
+	//SETGATE(idt[T_COPROC], 0, GD_KT, _coproc, 0);
+	SETGATE(idt[T_TSS], 0, GD_KT, _invalid_tss, 0);
+	SETGATE(idt[T_SEGNP], 0, GD_KT, _seg_not_present, 0);
+	SETGATE(idt[T_STACK], 0, GD_KT, _stack_fault, 0);
+	SETGATE(idt[T_GPFLT], 0, GD_KT, _general_protection, 0);
+	SETGATE(idt[T_PGFLT], 0, GD_KT, _page_fault, 0);
+	//SETGATE(idt[T_RES], 0, GD_KT, _reserved, 0);
+	SETGATE(idt[T_FPERR], 0, GD_KT, _x87FPU_error, 0);
+	SETGATE(idt[T_ALIGN], 0, GD_KT, _align_check, 0);
+	SETGATE(idt[T_MCHK], 0, GD_KT, _machine_check, 0);
+	SETGATE(idt[T_SIMDERR], 0, GD_KT, _SIMD_FPerror, 0);
+	SETGATE(idt[T_VIRT], 0, GD_KT, _virtualization, 0);
 
 	// Per-CPU setup 
 	trap_init_percpu();
@@ -172,7 +222,22 @@ static void
 trap_dispatch(struct Trapframe *tf)
 {
 	// Handle processor exceptions.
-	// LAB 3: Your code here.
+	switch (tf->tf_trapno) {
+		case T_DEBUG:
+			//only support stepi now
+			//theorically possible to support watchpoint
+			monitor_stepi(tf);
+			return;
+		case T_BRKPT:
+			//user can exit the monitor
+			monitor(tf);
+			return;
+		case T_PGFLT:
+			page_fault_handler(tf);
+			break;
+		default:
+			break;
+	}
 
 	// Handle spurious interrupts
 	// The hardware sometimes raises these because of noise on the
@@ -263,7 +328,8 @@ page_fault_handler(struct Trapframe *tf)
 
 	// Handle kernel-mode page faults.
 
-	// LAB 3: Your code here.
+	if ((tf->tf_err & FEC_U) == 0)
+		panic("Page fault in kernel");
 
 	// We've already handled kernel-mode exceptions, so if we get here,
 	// the page fault happened in user mode.

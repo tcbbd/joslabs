@@ -1,6 +1,11 @@
 #ifndef JOS_INC_TRAP_H
 #define JOS_INC_TRAP_H
 
+// sysenter/sysexit instruction related MSR registers
+#define IA32_SYSENTER_CS    0x174
+#define IA32_SYSENTER_ESP   0x175
+#define IA32_SYSENTER_EIP   0x176
+
 // Trap numbers
 // These are processor defined:
 #define T_DIVIDE     0		// divide error
@@ -23,6 +28,7 @@
 #define T_ALIGN     17		// aligment check
 #define T_MCHK      18		// machine check
 #define T_SIMDERR   19		// SIMD floating point error
+#define T_VIRT      20		// Virtualization exception
 
 // These are arbitrarily chosen, but with care not to overlap
 // processor defined exceptions or interrupt vectors.

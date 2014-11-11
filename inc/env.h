@@ -54,6 +54,9 @@ struct Env {
 	uint32_t env_runs;		// Number of times environment has run
 	int env_cpunum;			// The CPU that the env is running on
 
+	// For sbrk
+	uint32_t env_brk;
+
 	// Address space
 	pde_t *env_pgdir;		// Kernel virtual address of page dir
 
