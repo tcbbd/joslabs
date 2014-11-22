@@ -14,10 +14,19 @@
 #define ID      (0x0020/4)   // ID
 #define VER     (0x0030/4)   // Version
 #define TPR     (0x0080/4)   // Task Priority
+#define APR     (0x0090/4)   // Arbitration Priority (Not in Pentium 4 & Xeon)
+#define PPR     (0x00A0/4)   // Processor Priority
 #define EOI     (0x00B0/4)   // EOI
+#define RRD     (0x00C0/4)   // Remote Read (Not in Pentium 4 & Xeon)
+#define LDR     (0x0080/4)   // Logical Destination
+#define DFR     (0x0080/4)   // Destination Format
 #define SVR     (0x00F0/4)   // Spurious Interrupt Vector
 	#define ENABLE     0x00000100   // Unit Enable
+#define ISRBS   (0x0100/4)   // In-Service Register (256-bit width) [31:0]
+#define TMRBS   (0x0180/4)   // Trigger Mode Register (256-bit width) [31"0]
+#define IRRBS   (0x0200/4)   // Interrupt Request Register (256-bit width) [31:0]
 #define ESR     (0x0280/4)   // Error Status
+#define CMCI    (0x02F0/4)   // CMCI LVT
 #define ICRLO   (0x0300/4)   // Interrupt Command
 	#define INIT       0x00000500   // INIT/RESET
 	#define STARTUP    0x00000600   // Startup IPI
@@ -33,6 +42,7 @@
 #define TIMER   (0x0320/4)   // Local Vector Table 0 (TIMER)
 	#define X1         0x0000000B   // divide counts by 1
 	#define PERIODIC   0x00020000   // Periodic
+#define THRML   (0x0330/4)   // Thermal Sensor LVT
 #define PCINT   (0x0340/4)   // Performance Counter LVT
 #define LINT0   (0x0350/4)   // Local Vector Table 1 (LINT0)
 #define LINT1   (0x0360/4)   // Local Vector Table 2 (LINT1)

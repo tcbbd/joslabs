@@ -120,7 +120,6 @@ env_init(void)
 	int i;
 
 	// Set up envs array
-	// NOTE: eflags not set yet, Interrupts are disabled
 	for (i = 0; i < NENV; i++) {
 		memset(&(envs[i].env_tf), 0, sizeof(struct Trapframe));
 		envs[i].env_link = &envs[i+1];
@@ -264,13 +263,15 @@ env_alloc(struct Env **newenv_store, envid_t parent_id)
 	// You will set e->env_tf.tf_eip later.
 
 	// Enable interrupts while in user mode.
-	// LAB 4: Your code here.
+	e->env_tf.tf_eflags |= FL_IF;
 
 	// Clear the page fault handler until user installs one.
 	e->env_pgfault_upcall = 0;
 
 	// Also clear the IPC receiving flag.
 	e->env_ipc_recving = 0;
+	// Lab 4 Challenge: Blocking ipc_send.
+	e->env_ipc_sending = 0;
 
 	// commit the allocation
 	env_free_list = e->env_link;
@@ -544,13 +545,14 @@ env_run(struct Env *e)
 
 	//if (e == curenv)
 	//	panic("env_run: Run current environment Again!");
-	if (curenv)
-		curenv->env_status = ENV_RUNNABLE; //NOTE:may be ENV_NOT_RUNNABLE
+	if (curenv && curenv->env_status == ENV_RUNNING)
+		curenv->env_status = ENV_RUNNABLE;
 	curenv = e;
 	e->env_status = ENV_RUNNING;
 	e->env_runs++;
 	lcr3(PADDR(e->env_pgdir));
 
+	unlock_kernel();
 	env_pop_tf(&e->env_tf);
 }
 

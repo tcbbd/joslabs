@@ -252,6 +252,8 @@ mem_init(void)
 static void
 mem_init_mp(void)
 {
+	int i;
+
 	// Create a direct mapping at the top of virtual address space starting
 	// at IOMEMBASE for accessing the LAPIC unit using memory-mapped I/O.
 	boot_map_region(kern_pgdir, IOMEMBASE, -IOMEMBASE, IOMEM_PADDR, PTE_W);
@@ -271,8 +273,10 @@ mem_init_mp(void)
 	//             Known as a "guard page".
 	//     Permissions: kernel RW, user NONE
 	//
-	// LAB 4: Your code here:
 
+	for (i = 0; i < NCPU; i++)
+		boot_map_region(kern_pgdir, KSTACKTOP - i * (KSTKSIZE + KSTKGAP) -
+				KSTKSIZE, KSTKSIZE, PADDR(percpu_kstacks[i]), PTE_W | PTE_P);
 }
 
 // --------------------------------------------------------------
@@ -315,6 +319,11 @@ page_init(void)
 	pages[0].pp_ref = 1;
 	pages[0].pp_link = NULL;
 	for (i = 1; i < npages_basemem; i++) {
+		if (i == MPENTRY_PADDR / PGSIZE) {
+			pages[i].pp_ref = 1;
+			pages[i].pp_link = NULL;
+			continue;
+		}
 		pages[i].pp_ref = 0;
 		pages[i].pp_link = page_free_list;
 		page_free_list = &pages[i];

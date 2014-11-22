@@ -70,10 +70,22 @@ TRAPHANDLER_NOEC(_machine_check, 18)
 TRAPHANDLER_NOEC(_SIMD_FPerror, 19)
 TRAPHANDLER_NOEC(_virtualization, 20)
 
+TRAPHANDLER_NOEC(_timer, IRQ_OFFSET + IRQ_TIMER)
+TRAPHANDLER_NOEC(_keyboard, IRQ_OFFSET + IRQ_KBD)
+TRAPHANDLER_NOEC(_serial_port, IRQ_OFFSET + IRQ_SERIAL)
+TRAPHANDLER_NOEC(_spurious_interrupt, IRQ_OFFSET + IRQ_SPURIOUS)
+TRAPHANDLER_NOEC(_ide_driver, IRQ_OFFSET + IRQ_IDE)
+TRAPHANDLER_NOEC(_apic_error, IRQ_OFFSET + IRQ_ERROR)
+
+TRAPHANDLER_NOEC(_system_call, T_SYSCALL)
+
 .globl sysenter_handler;
 .type sysenter_handler, @function;
 .align 2;
 sysenter_handler:
+	pushal
+	pushfl
+
 	pushl %edi
 	pushl %esi
 	pushl %edx
@@ -83,13 +95,16 @@ sysenter_handler:
 	movw $GD_KD, %ax
 	movw %ax, %ds
 	movw %ax, %es
-	call syscall
-	movw $GD_UD, %dx
+	call syscall_sysenter
+	movw $(GD_UD | 3), %dx
 	movw %dx, %ds
 	movw %dx, %es
 /*saved esp and eip*/
 	movl %ebp, %ecx
 	movl (%ebp), %edx
+/*sysenter will automatically disable interrupt, but sysexit won't recover it*/
+	sti
+/*possible to be interrupted here?*/
 	sysexit
 sysenter_spin:
 	jmp sysenter_spin

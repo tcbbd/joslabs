@@ -97,7 +97,7 @@ mpsearch1(physaddr_t a, int len)
 // [MP 4] is in one of the following three locations:
 // 1) in the first KB of the EBDA;
 // 2) if there is no EBDA, in the last KB of system base memory;
-// 3) in the BIOS ROM between 0xE0000 and 0xFFFFF.
+// 3) in the BIOS ROM between 0xF0000 and 0xFFFFF.
 static struct mp *
 mpsearch(void)
 {
@@ -216,7 +216,7 @@ mp_init(void)
 	cprintf("SMP: CPU %d found %d CPU(s)\n", bootcpu->cpu_id,  ncpu);
 
 	if (mp->imcrp) {
-		// [MP 3.2.6.1] If the hardware implements PIC mode,
+		// [MP 3.6.2.1] If the hardware implements PIC mode,
 		// switch to getting interrupts from the LAPIC.
 		cprintf("SMP: Setting IMCR to switch from PIC mode to symmetric I/O mode\n");
 		outb(0x22, 0x70);   // Select IMCR
