@@ -5,7 +5,6 @@
 
 // After you implemented ticket_spinlock,
 // define USE_TICKET_SPIN_LOCK.
-// LAB 4: Your code here.
 
 //#define USE_TICKET_SPIN_LOCK
 

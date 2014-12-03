@@ -48,18 +48,73 @@
  * Lab 3: Your code here for generating entry points for the different traps.
  */
 
+TRAPHANDLER_NOEC(_divide_zero, 0)
+TRAPHANDLER_NOEC(_debug, 1)
+/*TRAPHANDLER_NOEC(_NMI, 2) not a trap*/
+TRAPHANDLER_NOEC(_breakpoint, 3)
+TRAPHANDLER_NOEC(_overflow, 4)
+TRAPHANDLER_NOEC(_bound, 5)
+TRAPHANDLER_NOEC(_invalid_opcode, 6)
+TRAPHANDLER_NOEC(_device, 7)
+TRAPHANDLER(_double_fault, 8)
+/*TRAPHANDLER_NOEC(_coproc, 9)*/
+TRAPHANDLER(_invalid_tss, 10)
+TRAPHANDLER(_seg_not_present, 11)
+TRAPHANDLER(_stack_fault, 12)
+TRAPHANDLER(_general_protection, 13)
+TRAPHANDLER(_page_fault, 14)
+/*TRAPHANDLER_NOEC(_reserved, 15)*/
+TRAPHANDLER_NOEC(_x87FPU_error, 16)
+TRAPHANDLER(_align_check, 17)
+TRAPHANDLER_NOEC(_machine_check, 18)
+TRAPHANDLER_NOEC(_SIMD_FPerror, 19)
+TRAPHANDLER_NOEC(_virtualization, 20)
 
+TRAPHANDLER_NOEC(_timer, IRQ_OFFSET + IRQ_TIMER)
+TRAPHANDLER_NOEC(_keyboard, IRQ_OFFSET + IRQ_KBD)
+TRAPHANDLER_NOEC(_serial_port, IRQ_OFFSET + IRQ_SERIAL)
+TRAPHANDLER_NOEC(_spurious_interrupt, IRQ_OFFSET + IRQ_SPURIOUS)
+TRAPHANDLER_NOEC(_ide_driver, IRQ_OFFSET + IRQ_IDE)
+TRAPHANDLER_NOEC(_apic_error, IRQ_OFFSET + IRQ_ERROR)
+
+TRAPHANDLER_NOEC(_system_call, T_SYSCALL)
 
 .globl sysenter_handler;
 .type sysenter_handler, @function;
 .align 2;
 sysenter_handler:
-/*
- * Lab 3: Your code here for system call handling
- */
+	pushal
+	pushfl
 
+	pushl %edi
+	pushl %esi
+	pushl %edx
+	pushl %ecx
+	pushl %ebx
+	pushl %eax
+	movw $GD_KD, %ax
+	movw %ax, %ds
+	movw %ax, %es
+	call syscall_sysenter
+	movw $(GD_UD | 3), %dx
+	movw %dx, %ds
+	movw %dx, %es
+/*saved esp and eip*/
+	movl %ebp, %ecx
+	movl (%ebp), %edx
+/*sysenter will automatically disable interrupt, but sysexit won't recover it*/
+	sti
+/*possible to be interrupted here?*/
+	sysexit
+sysenter_spin:
+	jmp sysenter_spin
 
-/*
- * Lab 3: Your code here for _alltraps
- */
-
+_alltraps:
+	pushl %ds
+	pushl %es
+	pushal
+	movw $GD_KD, %ax
+	movw %ax, %ds
+	movw %ax, %es
+	pushl %esp
+	call trap

@@ -37,6 +37,26 @@ static const char * const error_string[MAXERROR] =
 	[E_NOT_SUPP]	= "operation not supported",
 };
 
+// Return the width for padding (actually padding width + 1)
+static int
+rprintnum(void (*putch)(int, void*), void *putdat,
+	 unsigned long long num, unsigned base, int width, int padc)
+{
+	int width_cur = width;
+	// first recursively print all preceding (more significant) digits
+	if (num >= base) {
+		width_cur = rprintnum(putch, putdat, num / base, base, width - 1, padc);
+	} else if (padc != '-') {
+		// print any needed pad characters before first digit
+		while (--width > 0)
+			putch(padc, putdat);
+	}
+
+	// then print this (the least significant) digit
+	putch("0123456789abcdef"[num % base], putdat);
+	return width_cur;
+}
+
 /*
  * Print a number (base <= 16) in reverse order,
  * using specified putch function and associated pointer putdat.
@@ -45,17 +65,12 @@ static void
 printnum(void (*putch)(int, void*), void *putdat,
 	 unsigned long long num, unsigned base, int width, int padc)
 {
-	// first recursively print all preceding (more significant) digits
-	if (num >= base) {
-		printnum(putch, putdat, num / base, base, width - 1, padc);
-	} else {
-		// print any needed pad characters before first digit
-		while (--width > 0)
-			putch(padc, putdat);
-	}
+	// Note we DO NOT support [.precision] here
 
-	// then print this (the least significant) digit
-	putch("0123456789abcdef"[num % base], putdat);
+	width = rprintnum(putch, putdat, num, base, width, padc);
+	if (padc == '-')
+		while(--width > 0)
+			putch(' ', putdat);
 }
 
 // Get an unsigned int of various possible sizes from a varargs list,
@@ -96,6 +111,7 @@ vprintfmt(void (*putch)(int, void*), void *putdat, const char *fmt, va_list ap)
 	unsigned long long num;
 	int base, lflag, width, precision, altflag;
 	char padc;
+	char *np;
 
 	while (1) {
 		while ((ch = *(unsigned char *) fmt++) != '%') {
@@ -119,8 +135,10 @@ vprintfmt(void (*putch)(int, void*), void *putdat, const char *fmt, va_list ap)
 			goto reswitch;
 			
 		// flag to pad with 0's instead of spaces
+		// left justifying always covers zero filling
 		case '0':
-			padc = '0';
+			if (padc != '-')
+				padc = '0';
 			goto reswitch;
 
 		// width field
@@ -186,7 +204,7 @@ vprintfmt(void (*putch)(int, void*), void *putdat, const char *fmt, va_list ap)
 				p = "(null)";
 			if (width > 0 && padc != '-')
 				for (width -= strnlen(p, precision); width > 0; width--)
-					putch(padc, putdat);
+					putch(' ', putdat);
 			for (; (ch = *p++) != '\0' && (precision < 0 || --precision >= 0); width--)
 				if (altflag && (ch < ' ' || ch > '~'))
 					putch('?', putdat);
@@ -214,11 +232,10 @@ vprintfmt(void (*putch)(int, void*), void *putdat, const char *fmt, va_list ap)
 
 		// (unsigned) octal
 		case 'o':
-			// Replace this with your code.
-			putch('X', putdat);
-			putch('X', putdat);
-			putch('X', putdat);
-			break;
+			putch('0', putdat);
+			num = getuint(&ap, lflag);
+			base = 8;
+			goto number;
 
 		// pointer
 		case 'p':
@@ -236,6 +253,24 @@ vprintfmt(void (*putch)(int, void*), void *putdat, const char *fmt, va_list ap)
 		number:
 			printnum(putch, putdat, num, base, width, padc);
 			break;
+
+        case 'n': {
+            // Nothing printed. The argument must be a pointer to a signed char, 
+            // where the number of characters written so far is stored.
+
+            const char *null_error = "\nerror! writing through NULL pointer! (%n argument)\n";
+            const char *overflow_error = "\nwarning! The value %n argument pointed to has been overflowed!\n";
+
+			if ((np = va_arg(ap, char *)) == NULL) {
+				printfmt(putch, putdat, "%s", null_error);
+				break;
+			}
+			*np = *(int *)putdat;
+			if ((*(int *) putdat) > 0x7F)
+				printfmt(putch, putdat, "%s", overflow_error);
+
+            break;
+        }
 
 		// escaped '%' character
 		case '%':

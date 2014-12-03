@@ -33,6 +33,15 @@ sgdt(struct Pseudodesc* gdtd)
 	__asm __volatile("sgdt %0" :  "=m" (*gdtd));
 }
 
+static void (*ring0_called_func)(void) = NULL;
+
+static void
+ring0_call_wrapper() {
+	ring0_called_func();
+	__asm __volatile ("leave\n\t"
+			"lret");
+}
+
 // Invoke a given function pointer with ring0 privilege, then return to ring3
 void ring0_call(void (*fun_ptr)(void)) {
     // Here's some hints on how to achieve this.
@@ -48,7 +57,22 @@ void ring0_call(void (*fun_ptr)(void)) {
     //        to add any functions or global variables in this 
     //        file if necessary.
 
-    // Lab3 : Your Code Here
+	struct Pseudodesc gdtr;
+	struct Gatedesc *gdt, replaced_seg;
+	char *gdt_page = (char *) 0x80000000;
+
+	sgdt(&gdtr);
+	sys_map_kernel_page((char *) gdtr.pd_base, gdt_page);
+	gdt = (struct Gatedesc *) (gdt_page + (gdtr.pd_base % PGSIZE));
+
+	// replace TSS descriptor with call gate
+	ring0_called_func = fun_ptr;
+	replaced_seg = gdt[5];
+	SETCALLGATE(((struct Gatedesc volatile *)gdt)[5], GD_KT, ring0_call_wrapper, 3);
+
+	// call the function through far call instruction
+	__asm __volatile ("lcall %0, $0" : : "i"(GD_TSS0));
+	gdt[5] = replaced_seg;
 }
 
 void

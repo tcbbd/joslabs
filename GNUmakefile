@@ -238,11 +238,11 @@ prep-%:
 
 run-%-nox-gdb: .gdbinit
 	$(V)$(MAKE) --no-print-directory prep-$*
-	$(QEMU) -nographic $(QEMUOPTS) -S
+	$(QEMU) -nographic $(QEMUOPTS) -S $(QEMUGDB)
 
 run-%-gdb: .gdbinit
 	$(V)$(MAKE) --no-print-directory prep-$*
-	$(QEMU) $(QEMUOPTS) -S
+	$(QEMU) $(QEMUOPTS) -S $(QEMUGDB)
 
 run-%-nox: .gdbinit
 	$(V)$(MAKE) --no-print-directory prep-$*
