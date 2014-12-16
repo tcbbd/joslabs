@@ -102,9 +102,11 @@ i386_init(void)
 	//ENV_CREATE(user_writemotd, ENV_TYPE_USER);
 	//ENV_CREATE(user_testfile, ENV_TYPE_USER);
 	//ENV_CREATE(user_icode, ENV_TYPE_USER);
+
+	ENV_CREATE(user_hello, ENV_TYPE_USER);
 	//ENV_CREATE(user_primes, ENV_TYPE_USER);
 	//ENV_CREATE(user_pingpong, ENV_TYPE_USER);
-	ENV_CREATE(user_blocksend, ENV_TYPE_USER);
+	//ENV_CREATE(user_blocksend, ENV_TYPE_USER);
 	//ENV_CREATE(user_yield, ENV_TYPE_USER);
 	//ENV_CREATE(user_stresssched, ENV_TYPE_USER);
 	//ENV_CREATE(user_forktree, ENV_TYPE_USER);
