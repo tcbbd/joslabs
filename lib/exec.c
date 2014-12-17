@@ -275,11 +275,11 @@ start_program(uintptr_t init_esp)
 
 	// Then map the new stack into the user stack page
 	// and unmap it from temp stack.
-			"call %1\n\t"
+			"call map_stack\n\t"
 
 	// And change the current stack back to the user stack
 			"popl %%esp\n\t"
-			"pushl %2\n\t"
+			"pushl %1\n\t"
 			"pushl $0\n\t"
 			"call sys_page_unmap\n\t"
 			"addl $8, %%esp\n\t"
@@ -293,7 +293,7 @@ start_program(uintptr_t init_esp)
 			"movl $0, %%esi\n\t"
 			"movl $0, %%edi\n\t"
 			"ret"
-			:: "r" ((uintptr_t) (temp_stack - 1)), "m"(map_stack), "i" (UTEMP2));
+			:: "r" ((uintptr_t) (temp_stack - 1)), "i" (UTEMP2), "i" (map_stack));
 
 	// Should never reach here!
 	return 0;
