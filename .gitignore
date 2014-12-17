@@ -6,6 +6,7 @@
 /jos.cmd
 /.gdbinit
 /wget.log
+/slirp.cap
 /qemu.pcap
 /qemu.pcap.*
 /qemu.out

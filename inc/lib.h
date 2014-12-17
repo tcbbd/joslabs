@@ -35,7 +35,7 @@ extern const volatile struct Env envs[NENV];
 extern const volatile struct Page pages[];
 
 // exit.c
-void	exit(void);
+void	exit(void) __attribute__((section(".lib")));
 
 // pgfault.c
 void	set_pgfault_handler(void (*handler)(struct UTrapframe *utf));
@@ -44,25 +44,25 @@ void	set_pgfault_handler(void (*handler)(struct UTrapframe *utf));
 char*	readline(const char *buf);
 
 // syscall.c
-void	sys_cputs(const char *string, size_t len);
-int	sys_cgetc(void);
-envid_t	sys_getenvid(void);
-int	sys_env_destroy(envid_t);
+void	sys_cputs(const char *string, size_t len) __attribute__((section(".lib")));
+int	sys_cgetc(void) __attribute__((section(".lib")));
+envid_t	sys_getenvid(void) __attribute__((section(".lib")));
+int	sys_env_destroy(envid_t) __attribute__((section(".lib")));
 
-int     sys_map_kernel_page(void* kpage, void* va);
+int     sys_map_kernel_page(void* kpage, void* va) __attribute__((section(".lib")));
 
-void	sys_yield(void);
+void	sys_yield(void) __attribute__((section(".lib")));
 static envid_t sys_exofork(void);
-int	sys_env_set_status(envid_t env, int status);
-int	sys_env_set_trapframe(envid_t env, struct Trapframe *tf);
-int	sys_env_set_pgfault_upcall(envid_t env, void *upcall);
-int	sys_page_alloc(envid_t env, void *pg, int perm);
+int	sys_env_set_status(envid_t env, int status) __attribute__((section(".lib")));
+int	sys_env_set_trapframe(envid_t env, struct Trapframe *tf) __attribute__((section(".lib")));
+int	sys_env_set_pgfault_upcall(envid_t env, void *upcall) __attribute__((section(".lib")));
+int	sys_page_alloc(envid_t env, void *pg, int perm) __attribute__((section(".lib")));
 int	sys_page_map(envid_t src_env, void *src_pg,
-		     envid_t dst_env, void *dst_pg, int perm);
-int	sys_page_unmap(envid_t env, void *pg);
-int	sys_ipc_try_send(envid_t to_env, uint32_t value, void *pg, int perm);
-int	sys_ipc_recv(void *rcv_pg);
-unsigned int sys_time_msec(void);
+		     envid_t dst_env, void *dst_pg, int perm) __attribute__((section(".lib")));
+int	sys_page_unmap(envid_t env, void *pg) __attribute__((section(".lib")));
+int	sys_ipc_try_send(envid_t to_env, uint32_t value, void *pg, int perm) __attribute__((section(".lib")));
+int	sys_ipc_recv(void *rcv_pg) __attribute__((section(".lib")));
+unsigned int sys_time_msec(void) __attribute__((section(".lib")));
 
 // This must be inlined.  Exercise for reader: why?
 static __inline envid_t __attribute__((always_inline))
@@ -78,9 +78,9 @@ sys_exofork(void)
 }
 
 // ipc.c
-void	ipc_send(envid_t to_env, uint32_t value, void *pg, int perm);
-int32_t ipc_recv(envid_t *from_env_store, void *pg, int *perm_store);
-envid_t	ipc_find_env(enum EnvType type);
+void	ipc_send(envid_t to_env, uint32_t value, void *pg, int perm) __attribute__((section(".lib")));
+int32_t ipc_recv(envid_t *from_env_store, void *pg, int *perm_store) __attribute__((section(".lib")));
+envid_t	ipc_find_env(enum EnvType type) __attribute__((section(".lib")));
 
 // fork.c
 #define	PTE_SHARE	0x400
@@ -92,24 +92,24 @@ int     sys_map_kernel_page(void* kpage, void* va);
 int sys_sbrk(uint32_t inc);
 
 // fd.c
-int	close(int fd);
-ssize_t	read(int fd, void *buf, size_t nbytes);
-ssize_t	write(int fd, const void *buf, size_t nbytes);
-int	seek(int fd, off_t offset);
-void	close_all(void);
-ssize_t	readn(int fd, void *buf, size_t nbytes);
-int	dup(int oldfd, int newfd);
-int	fstat(int fd, struct Stat *statbuf);
-int	stat(const char *path, struct Stat *statbuf);
+int	close(int fd) __attribute__((section(".lib")));
+ssize_t	read(int fd, void *buf, size_t nbytes) __attribute__((section(".lib")));
+ssize_t	write(int fd, const void *buf, size_t nbytes) __attribute__((section(".lib")));
+int	seek(int fd, off_t offset) __attribute__((section(".lib")));
+void	close_all(void) __attribute__((section(".lib")));
+ssize_t	readn(int fd, void *buf, size_t nbytes) __attribute__((section(".lib")));
+int	dup(int oldfd, int newfd) __attribute__((section(".lib")));
+int	fstat(int fd, struct Stat *statbuf) __attribute__((section(".lib")));
+int	stat(const char *path, struct Stat *statbuf) __attribute__((section(".lib")));
 
 // file.c
-int	open(const char *path, int mode);
-int	ftruncate(int fd, off_t size);
-int	remove(const char *path);
-int	sync(void);
+int	open(const char *path, int mode) __attribute__((section(".lib")));
+int	ftruncate(int fd, off_t size) __attribute__((section(".lib")));
+int	remove(const char *path) __attribute__((section(".lib")));
+int	sync(void) __attribute__((section(".lib")));
 
 // pageref.c
-int	pageref(void *addr);
+int	pageref(void *addr) __attribute__((section(".lib")));
 
 // sockets.c
 int     accept(int s, struct sockaddr *addr, socklen_t *addrlen);
@@ -134,6 +134,9 @@ int     nsipc_socket(int domain, int type, int protocol);
 envid_t	spawn(const char *program, const char **argv);
 envid_t	spawnl(const char *program, const char *arg0, ...);
 
+// exec.c
+int execv(const char *program, const char **argv) __attribute__((section(".lib")));
+int execl(const char *program, const char *arg0, ...) __attribute__((section(".lib")));
 
 
 /* File open modes */

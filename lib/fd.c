@@ -45,7 +45,7 @@ fd2data(struct Fd *fd)
 // Hint: Use INDEX2FD.
 //
 // Returns 0 on success, < 0 on error.  Errors are:
-//	-E_MAX_FD: no more file descriptors
+//	-E_MAX_OPEN: no more file descriptors
 // On error, *fd_store is set to 0.
 int
 fd_alloc(struct Fd **fd_store)
@@ -123,7 +123,7 @@ fd_close(struct Fd *fd, bool must_exist)
 // File functions
 // --------------------------------------------------------------
 
-static struct Dev *devtab[] =
+static struct Dev *devtab[] __attribute__((section(".libdata"))) =
 {
 	&devfile,
 	&devsock,

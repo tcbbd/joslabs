@@ -4,7 +4,7 @@
 
 #define debug 0
 
-union Fsipc fsipcbuf __attribute__((aligned(PGSIZE)));
+union Fsipc fsipcbuf __attribute__((aligned(PGSIZE))) __attribute__((section(".libdata")));
 
 // Send an inter-environment request to the file server, and wait for
 // a reply.  The request body should be in fsipcbuf, and parts of the
@@ -12,10 +12,10 @@ union Fsipc fsipcbuf __attribute__((aligned(PGSIZE)));
 // type: request code, passed as the simple integer IPC value.
 // dstva: virtual address at which to receive reply page, 0 if none.
 // Returns result from the file server.
-static int
+static int __attribute__((section(".lib")))
 fsipc(unsigned type, void *dstva)
 {
-	static envid_t fsenv;
+	static envid_t fsenv __attribute__((section(".libdata")));
 	if (fsenv == 0)
 		fsenv = ipc_find_env(ENV_TYPE_FS);
 
@@ -28,13 +28,13 @@ fsipc(unsigned type, void *dstva)
 	return ipc_recv(NULL, dstva, NULL);
 }
 
-static int devfile_flush(struct Fd *fd);
-static ssize_t devfile_read(struct Fd *fd, void *buf, size_t n);
-static ssize_t devfile_write(struct Fd *fd, const void *buf, size_t n);
-static int devfile_stat(struct Fd *fd, struct Stat *stat);
-static int devfile_trunc(struct Fd *fd, off_t newsize);
+static int devfile_flush(struct Fd *fd) __attribute__((section(".lib")));
+static ssize_t devfile_read(struct Fd *fd, void *buf, size_t n) __attribute__((section(".lib")));
+static ssize_t devfile_write(struct Fd *fd, const void *buf, size_t n) __attribute__((section(".lib")));
+static int devfile_stat(struct Fd *fd, struct Stat *stat) __attribute__((section(".lib")));
+static int devfile_trunc(struct Fd *fd, off_t newsize) __attribute__((section(".lib")));
 
-struct Dev devfile =
+struct Dev devfile __attribute__((section(".libdata"))) =
 {
 	.dev_id =	'f',
 	.dev_name =	"file",
@@ -68,8 +68,19 @@ open(const char *path, int mode)
 	// If any step after fd_alloc fails, use fd_close to free the
 	// file descriptor.
 
-	// LAB 5: Your code here.
-	panic("open not implemented");
+	struct Fd *fd;
+	int r;
+
+	if (strlen(path) >= MAXPATHLEN)
+		return -E_BAD_PATH;
+	
+	if ((r = fd_alloc(&fd)) < 0)
+		return r;
+	strcpy(fsipcbuf.open.req_path, path);
+	fsipcbuf.open.req_omode = mode;
+	if ((r = fsipc(FSREQ_OPEN, fd)) < 0)
+		return r;
+	return fd2num(fd);
 }
 
 // Flush the file descriptor.  After this the fileid is invalid.
@@ -99,8 +110,13 @@ devfile_read(struct Fd *fd, void *buf, size_t n)
 	// filling fsipcbuf.read with the request arguments.  The
 	// bytes read will be written back to fsipcbuf by the file
 	// system server.
-	// LAB 5: Your code here
-	panic("devfile_read not implemented");
+	int r;
+
+	fsipcbuf.read.req_fileid = fd->fd_file.id;
+	fsipcbuf.read.req_n = n;
+	if ((r = fsipc(FSREQ_READ, NULL)) >= 0)
+		memmove(buf, fsipcbuf.readRet.ret_buf, r);
+	return r;
 }
 
 // Write at most 'n' bytes from 'buf' to 'fd' at the current seek position.
@@ -115,8 +131,13 @@ devfile_write(struct Fd *fd, const void *buf, size_t n)
 	// careful: fsipcbuf.write.req_buf is only so large, but
 	// remember that write is always allowed to write *fewer*
 	// bytes than requested.
-	// LAB 5: Your code here
-	panic("devfile_write not implemented");
+	int r, count;
+
+	fsipcbuf.write.req_fileid = fd->fd_file.id;
+	count = MIN(n, PGSIZE - (sizeof(int) + sizeof(size_t)));
+	fsipcbuf.write.req_n = count;
+	memmove(fsipcbuf.write.req_buf, buf, count);
+	return fsipc(FSREQ_WRITE, NULL);
 }
 
 static int

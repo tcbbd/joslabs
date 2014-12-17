@@ -35,6 +35,19 @@ SECTIONS
 
 	PROVIDE(end = .);
 
+	. = 0x08000000;
+
+	PROVIDE(libtext = .);
+
+	.lib : {
+		*(.lib)
+	}
+
+	.libdata : {
+		*(.libdata)
+	}
+
+	PROVIDE(libend = .);
 
 	/* Place debugging symbols so that they can be found by
 	 * the kernel debugger.

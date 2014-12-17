@@ -120,6 +120,8 @@
 #define FL_ID		0x00200000	// ID flag
 
 // Page fault error codes
+// FEC_PR indicates whether the page fault is caused by a present(i.e. in
+// memory) page (1 for present).
 #define FEC_PR		0x1	// Page fault caused by protection violation
 #define FEC_WR		0x2	// Page fault caused by a write
 #define FEC_U		0x4	// Page fault occured while in user mode
@@ -139,6 +141,9 @@
 #define SEG_NULL						\
 	.word 0, 0;						\
 	.byte 0, 0, 0, 0
+//P = 1(Present in memory), DPL = 0, S = 1(Non system segment i.e. Code/Data
+//segment), G = 1(4K Granularity), D/B = 1(32-bit segment), L = 0(Not in Long
+//Mode), AVL = 0(Available/Reserved bit)
 #define SEG(type,base,lim)					\
 	.word (((lim) >> 12) & 0xffff), ((base) & 0xffff);	\
 	.byte (((base) >> 16) & 0xff), (0x90 | (type)),		\
@@ -159,7 +164,7 @@ struct Segdesc {
 	unsigned sd_p : 1;          // Present
 	unsigned sd_lim_19_16 : 4;  // High bits of segment limit
 	unsigned sd_avl : 1;        // Unused (available for software use)
-	unsigned sd_rsv1 : 1;       // Reserved
+	unsigned sd_rsv1 : 1;       // Reserved(Long mode bit in x86-64 CPUs)
 	unsigned sd_db : 1;         // 0 = 16-bit segment, 1 = 32-bit segment
 	unsigned sd_g : 1;          // Granularity: limit scaled by 4K when set
 	unsigned sd_base_31_24 : 8; // High bits of segment base address
@@ -167,12 +172,14 @@ struct Segdesc {
 // Null segment
 #define SEG_NULL	(struct Segdesc){ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }
 // Segment that is loadable but faults when used
+// 32-bit Data Segment with 0 base and 0 limit
 #define SEG_FAULT	(struct Segdesc){ 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0 }
-// Normal segment
+// Normal segment(i.e. Code/Data segment)
 #define SEG(type, base, lim, dpl) (struct Segdesc)			\
 { ((lim) >> 12) & 0xffff, (base) & 0xffff, ((base) >> 16) & 0xff,	\
     type, 1, dpl, 1, (unsigned) (lim) >> 28, 0, 0, 1, 1,		\
     (unsigned) (base) >> 24 }
+//NOTE:this is actually 32-bit segment
 #define SEG16(type, base, lim, dpl) (struct Segdesc)			\
 { (lim) & 0xffff, (base) & 0xffff, ((base) >> 16) & 0xff,		\
     type, 1, dpl, 1, (unsigned) (lim) >> 16, 0, 0, 1, 0,		\

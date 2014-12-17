@@ -1,7 +1,7 @@
 #include <inc/mmu.h>
 #include <inc/memlayout.h>
 
-.data
+.section .libdata
 // Define the global symbols 'envs', 'pages', 'vpt', and 'vpd'
 // so that they can be used in C as if they were ordinary global arrays.
 	.globl envs

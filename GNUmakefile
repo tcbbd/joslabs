@@ -255,11 +255,16 @@ run-%-nox: prep-% pre-qemu
 run-%: prep-% pre-qemu
 	$(V)$(MAKE) --no-print-directory prep-$*
 	$(QEMU) $(QEMUOPTS)
+#	$(QEMU) -nographic $(QEMUOPTS) -S $(QEMUGDB)
 
 # For network connections
 which-ports:
 	@echo "Local port $(PORT7) forwards to JOS port 7 (echo server)"
 	@echo "Local port $(PORT80) forwards to JOS port 80 (web server)"
+
+run-%-gdb: .gdbinit
+	$(V)$(MAKE) --no-print-directory prep-$*
+	$(QEMU) $(QEMUOPTS) -S $(QEMUGDB)
 
 nc-80:
 	nc localhost $(PORT80)

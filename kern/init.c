@@ -81,7 +81,7 @@ i386_init(void)
 	pci_init();
 
 	// Acquire the big kernel lock before waking up APs
-	// Your code here:
+	lock_kernel();
 
 	// Starting non-boot CPUs
 	boot_aps();
@@ -113,6 +113,18 @@ i386_init(void)
 	// ENV_CREATE(net_testoutput, ENV_TYPE_USER);
 	// ENV_CREATE(user_echosrv, ENV_TYPE_USER);
 	// ENV_CREATE(user_httpd, ENV_TYPE_USER);
+
+	//ENV_CREATE(user_writemotd, ENV_TYPE_USER);
+	//ENV_CREATE(user_testfile, ENV_TYPE_USER);
+	ENV_CREATE(user_icode2, ENV_TYPE_USER);
+
+	//ENV_CREATE(user_primes, ENV_TYPE_USER);
+	//ENV_CREATE(user_pingpong, ENV_TYPE_USER);
+	//ENV_CREATE(user_blocksend, ENV_TYPE_USER);
+	//ENV_CREATE(user_yield, ENV_TYPE_USER);
+	//ENV_CREATE(user_stresssched, ENV_TYPE_USER);
+	//ENV_CREATE(user_forktree, ENV_TYPE_USER);
+	//ENV_CREATE(user_dumbfork, ENV_TYPE_USER);
 #endif // TEST*
 
 	// Schedule and run the first user environment!
@@ -174,8 +186,8 @@ mp_main(void)
 	//
 	// Your code here:
 
-	// Remove this after you finish Exercise 4
-	for (;;);
+	lock_kernel();
+	sched_yield();
 }
 
 /*
