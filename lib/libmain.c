@@ -5,8 +5,8 @@
 
 extern void umain(int argc, char **argv);
 
-const volatile struct Env *thisenv;
-const char *binaryname = "<unknown>";
+const volatile struct Env *thisenv __attribute__((section(".libdata")));
+const char *binaryname __attribute__((section(".libdata"))) = "<unknown>";
 
 void
 libmain(int argc, char **argv)

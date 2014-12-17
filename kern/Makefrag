@@ -82,7 +82,8 @@ KERN_BINFILES +=	user/idle \
 KERN_BINFILES +=	user/testfile \
 			user/writemotd \
 			user/icode \
-			fs/fs
+			fs/fs \
+			user/icode2 # Lab 5 Challenge: User mode exec test program
 
 KERN_OBJFILES := $(patsubst %.c, $(OBJDIR)/%.o, $(KERN_SRCFILES))
 KERN_OBJFILES := $(patsubst %.S, $(OBJDIR)/%.o, $(KERN_OBJFILES))
