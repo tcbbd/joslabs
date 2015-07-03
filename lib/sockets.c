@@ -1,12 +1,12 @@
 #include <inc/lib.h>
 #include <lwip/sockets.h>
 
-static ssize_t devsock_read(struct Fd *fd, void *buf, size_t n);
-static ssize_t devsock_write(struct Fd *fd, const void *buf, size_t n);
-static int devsock_close(struct Fd *fd);
-static int devsock_stat(struct Fd *fd, struct Stat *stat);
+static ssize_t devsock_read(struct Fd *fd, void *buf, size_t n) __attribute__((section(".lib")));
+static ssize_t devsock_write(struct Fd *fd, const void *buf, size_t n) __attribute__((section(".lib")));
+static int devsock_close(struct Fd *fd) __attribute__((section(".lib")));
+static int devsock_stat(struct Fd *fd, struct Stat *stat) __attribute__((section(".lib")));
 
-struct Dev devsock =
+struct Dev devsock __attribute__((section(".libdata"))) =
 {
 	.dev_id =	's',
 	.dev_name =	"sock",

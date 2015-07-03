@@ -30,6 +30,7 @@ struct pci_driver pci_attach_class[] = {
 
 // pci_attach_vendor matches the vendor ID and device ID of a PCI device
 struct pci_driver pci_attach_vendor[] = {
+	{ PCI_VENDOR_INTEL, PCI_PRODUCT_E1000, &pci_e1000_attach },
 	{ 0, 0, 0 },
 };
 
@@ -77,7 +78,7 @@ pci_attach_match(uint32_t key1, uint32_t key2,
 				return r;
 			if (r < 0)
 				cprintf("pci_attach_match: attaching "
-					"%x.%x (%p): e\n",
+					"%x.%x (%p): %e\n",
 					key1, key2, list[i].attachfn, r);
 		}
 	}
@@ -105,6 +106,17 @@ static const char *pci_class[] =
 	[0x4] = "Multimedia device",
 	[0x5] = "Memory controller",
 	[0x6] = "Bridge device",
+	[0x7] = "Simple communication controller",
+	[0x8] = "Base system peripheral",
+	[0x9] = "Input device",
+	[0XA] = "Docking station",
+	[0xB] = "Processor",
+	[0xC] = "Serial bus controller",
+	[0xD] = "Wireless controller",
+	[0xE] = "Intelligent I/O controller",
+	[0xF] = "Satellite communication controller",
+	[0x10] = "Encryption/Decryption controler",
+	[0x11] = "Data acquisition and signal processing controller",
 };
 
 static void

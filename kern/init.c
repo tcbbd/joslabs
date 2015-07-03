@@ -116,7 +116,7 @@ i386_init(void)
 
 	//ENV_CREATE(user_writemotd, ENV_TYPE_USER);
 	//ENV_CREATE(user_testfile, ENV_TYPE_USER);
-	ENV_CREATE(user_icode2, ENV_TYPE_USER);
+	//ENV_CREATE(user_icode2, ENV_TYPE_USER);
 
 	//ENV_CREATE(user_primes, ENV_TYPE_USER);
 	//ENV_CREATE(user_pingpong, ENV_TYPE_USER);

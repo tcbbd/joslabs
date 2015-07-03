@@ -255,7 +255,7 @@ mem_init_mp(void)
 
 	// Create a direct mapping at the top of virtual address space starting
 	// at IOMEMBASE for accessing the LAPIC unit using memory-mapped I/O.
-	boot_map_region(kern_pgdir, IOMEMBASE, -IOMEMBASE, IOMEM_PADDR, PTE_W);
+	boot_map_region(kern_pgdir, IOMEMBASE, -IOMEMBASE, IOMEM_PADDR, PTE_W | PTE_P | PTE_PCD | PTE_PWT);
 
 	// Map per-CPU stacks starting at KSTACKTOP, for up to 'NCPU' CPUs.
 	//
