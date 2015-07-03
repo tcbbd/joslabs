@@ -1,0 +1,18 @@
+Lab4 问题回答
+丁卓成 5120379064
+
+Question 1.
+    一个主要区别在于mpentry.S被链接到了kernel文件，其中的符号都被定位在了KERNBASE以上的虚拟地址，因此为了保证AP在未开启页表前正常运行代码，用RELOC宏和MPBOOTPHYS宏计算了符号的物理地址。由于mpentry.S的代码实际载入的物理地址在0x100000以上的某处，我们在boot_aps()函数中先将其复制到了物理地址0x7000处，为此这段代码中的符号的地址应该按0x7000加上该符号在这段代码中的偏移量计算，这就是MPBOOTPHYS宏的由来。如果不使用这个宏而改用RELOC宏或干脆直接使用原来未经修改的符号，由于AP启动时位于实模式无法访问代码中提供的地址，将导致异常，造成启动失败。
+    另一个区别在于，mpentry.S除boot.S的功能外，还包含了entry.S的功能，即在mpentry.S内完成了开启保护模式和开启页表两个步骤，接下来直接通过调用mp_main()继续初始化即可。注意调用mp_main采用了间接调用，因为call指令的操作数默认是对于当前EIP的偏移量，由于我们运行于低地址而非链接时设置的高地址，必须通过绝对地址来调用mp_main。
+    此外，mpentry.S中没有设置A20 Line的代码，这可能是由于A20 Line是CPU到内存的总线上的限制，由于各个CPU共享这条总线，只要BSP去除了限制即可，由于我未在网上找到相关资料支持该观点，以上仅为个人推测，如有错误还请指出。
+
+Question 2.
+    在进入C代码之前，先要在trapentry.S的汇编代码将参数压栈，此时还无法调用spin_lock()函数。如果两个CPU共用一个内核栈，且同时产生异常或系统调用，正好在执行trapentry.S中的汇编指令设置内核栈，可能会导致内核栈进入一个不一致的状态，接下来的C函数(trap()或syscall())就无法正确执行，因此必须每个CPU一个内核栈。
+
+Question 3.
+    因为所有进程的页表，其内核部分(KERNBASE以上)都是一样的，只要当前处于内核态，不论cr3指向哪个页表的基址，均可正常访问内核数据结构。
+
+Challenge.
+    实现了Exercise 14后附的第一个Challenge，即将ipc_send的无限循环去除。我的实现方式是将sys_ipc_try_send改为阻塞的形式，即如果目标进程(env)暂时无法接收，本进程就yield，直到目标进程再次调用ipc_recv接收了该信息为止，再唤醒本进程。
+    为了完成本Challenge，我为struct Env又增加了一些域，以表明该进程是否正阻塞于sys_ipc_try_send调用，以及调用的参数，然后修改sys_ipc_try_send与sys_ipc_recv函数，使得sys_ipc_try_send函数在发现目标进程并未请求接收时，不返回-E_IPC_NOT_RECV，而是将自己设置为ENV_NOT_RUNNABLE并调用sched_yield切换到其他进程。对于sys_ipc_recv函数，首先会检查有无正阻塞在sys_ipc_try_send且目标是本进程的进程，若无则像往常一样yield，若有则接收该进程的struct Env中存放的信息，并将其状态设置为ENV_RUNNABLE使其可以被唤醒。
+    为了测试我所作修改的正确性，在user目录下增加了一个blocksend.c文件，编译入kernel进行测试。该程序的功能是fork若干子进程，父进程负责接收这些子进程发来的IPC Message，由于子进程较多，多个sender向同一receiver发送信息将导致sender进入阻塞状态，经测试能正确处理，故认为该Challenge已正确实现。
